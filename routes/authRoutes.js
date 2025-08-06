@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const authMiddleware = require('../middleware/authMiddleware'); 
 const router = express.Router();
 
 // Register
@@ -72,6 +73,8 @@ router.post('/forgot', async (req, res) => {
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
+
+
 
 
 module.exports = router;

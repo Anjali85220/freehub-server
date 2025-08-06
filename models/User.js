@@ -18,7 +18,13 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['client', 'freelancer'],
     required: true
-  }
+  },
+  favorites: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Gig'
+    }
+  ]
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

@@ -1,62 +1,24 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken } = require('../middleware/authMiddleware');
-const multer = require('multer');
 const gigController = require('../controllers/gigController');
+const authMiddleware = require('../middleware/authMiddleware');
+const { uploadMultiple } = require('../config/multer');
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + '.' + file.originalname.split('.').pop());
-  }
-});
+// Public routes (no authentication needed)
+router.get('/public', gigController.getPublicGigs); // For client browsing
+router.get('/public/:id', gigController.getPublicGig); // Single gig view
+router.get('/public/categories', gigController.getCategories); // Categories list
 
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed!'), false);
-  }
-};
+// Protect all routes from this point
+router.use(authMiddleware.protect);
 
-const upload = multer({ 
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
-});
-
-// POST /api/gigs
-router.post('/', auth, upload.array('images', 3), async (req, res) => {
-  const imageUrls = req.files.map(file => `https://dummyimage.com/600x400/000/fff&text=${file.originalname}`);
-  const gig = new Gig({
-    ...req.body,
-    images: imageUrls,
-    createdBy: req.userId
-  });
-  await gig.save();
-  res.status(201).json(gig);
-});
-
-
-// Create a new gig
-router.post('/', verifyToken, upload.array('images', 5), gigController.createGig);
-
-// Get all gigs
-router.get('/', gigController.getAllGigs);
-
-// Get gigs by user ID
-router.get('/user/:userId', gigController.getGigsByUser);
-
-// Get single gig by ID
-router.get('/:id', gigController.getGig);
-
-
-
-// Delete gig
-router.delete('/:id', verifyToken, gigController.deleteGig);
+// Authenticated user routes
+router.get('/user/my-gigs', gigController.getUserGigs);
+router.get('/user/my-gigs/stats', gigController.getGigStats);
+router.post('/', uploadMultiple, gigController.createGig);
+router.put('/:id', uploadMultiple, gigController.updateGig);
+router.delete('/:id', gigController.deleteGig);
+router.patch('/:id/status', gigController.updateGigStatus);
+router.get('/:id', gigController.getSingleGig);
 
 module.exports = router;
